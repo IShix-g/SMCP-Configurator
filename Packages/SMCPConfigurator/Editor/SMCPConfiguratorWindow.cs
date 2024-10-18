@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 using UnityEditor;
 
@@ -17,9 +18,13 @@ namespace Packages.SMCPConfigurator.Editor
     public class SMCPConfiguratorWindow : EditorWindow
     {
         string _rootPath = "Assets/_Projects/Scripts/";
+        const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
+        const string _gitUrl = "https://github.com/ishix/smcpconfigurator";
 
         string _currentVersion;
+        bool _isStartCheckVersion;
+        CancellationTokenSource _tokenSource;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -30,9 +35,12 @@ namespace Packages.SMCPConfigurator.Editor
             window.Show();
         }
 
-        void OnEnable()
+        void OnEnable() => _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
+
+        void OnDestroy()
         {
-            _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
+            _tokenSource?.SafeCancelAndDispose();
+            _isStartCheckVersion = false;
         }
         
         void OnGUI()
@@ -44,11 +52,25 @@ namespace Packages.SMCPConfigurator.Editor
                 };
                 GUILayout.BeginVertical(style);
             }
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("GitHub"))
+            {
+                Application.OpenURL(_gitUrl);
+            }
+            EditorGUI.BeginDisabledGroup(_isStartCheckVersion);
+            if (GUILayout.Button("Check for Update"))
+            {
+                StartCheckUpdate();
+            }
+            EditorGUI.EndDisabledGroup();
+            GUILayout.EndHorizontal();
+            
             {
                 var style = new GUIStyle(GUI.skin.label)
                 {
                     fontSize = 13,
-                    padding = new RectOffset(0, 0, 0, 5),
+                    padding = new RectOffset(0, 0, 10, 5),
                     alignment = TextAnchor.MiddleCenter,
                     wordWrap = true
                 };
@@ -106,6 +128,43 @@ namespace Packages.SMCPConfigurator.Editor
 #endif
 
             GUILayout.EndVertical();
+        }
+
+        void StartCheckUpdate()
+        {
+            _isStartCheckVersion = true;
+
+            _tokenSource = new CancellationTokenSource();
+            CheckVersion.GetVersionOnServerAsync(_packageUrl)
+                .SafeContinueWith(task =>
+                {
+                    var version = task.Result;
+                        
+                    if (!string.IsNullOrEmpty(version))
+                    {
+                        var comparisonResult = default(int);
+                        var current = new Version(_currentVersion.TrimStart('v').Trim());
+                        var server = new Version(version.Trim());
+                        comparisonResult = current.CompareTo(server);
+                        version = "v" + version;
+                            
+                        if (comparisonResult >= 0)
+                        {
+                            EditorUtility.DisplayDialog("Check for Update",
+                                "Local: " + _currentVersion + "  GitHub: " + version + "\nThe current version is the latest release.",
+                                "Close");
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayDialog(_currentVersion + " -> " + version,
+                                "There is a newer version (" + version + "), please update from Package Manager.",
+                                "Close");
+                        }
+                    }
+                    _isStartCheckVersion = false;
+                    _tokenSource.Dispose();
+                    _tokenSource = default;
+                }, _tokenSource.Token);
         }
         
         static void GenerateAssemblyDefinitions(string rootDirectory)
