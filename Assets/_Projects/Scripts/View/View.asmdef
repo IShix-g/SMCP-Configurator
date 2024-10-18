@@ -1,0 +1,6 @@
+{
+    "name": "View",
+    "references": [
+        "LogicAndModel"
+    ]
+}

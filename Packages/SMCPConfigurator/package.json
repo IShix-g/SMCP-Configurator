@@ -1,0 +1,27 @@
+{
+  "name": "com.ishix.smcpconfigurator",
+  "version": "1.0.0",
+  "displayName": "SMCP Configurator",
+  "description": "This is a tool for setting up the SMCP architecture.",
+  "unity": "2021.3",
+  "author": {
+    "name": "IShix",
+    "url": "https://github.com/IShix-g"
+  },
+  "keywords": [
+    "Unity",
+    "SMCP",
+    "Configurator",
+    "Tool",
+    "Architecture"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IShix-g/SMCP-Configurator.git"
+  },
+  "url": "https://github.com/IShix-g/SMCP-Configurator",
+  "documentationUrl": "https://github.com/IShix-g/SMCP-Configurator",
+  "licensesUrl": "https://github.com/IShix-g/SMCP-Configurator/blob/master/LICENSE",
+  "samples": []
+}
