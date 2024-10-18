@@ -88,7 +88,7 @@ namespace Packages.SMCPConfigurator.Editor
             EditorGUILayout.HelpBox("Create the necessary directories and assembly definition for SMCP.", MessageType.Info);
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Directory", GUILayout.MaxWidth(70));
+            GUILayout.Label("Root Directory", GUILayout.MaxWidth(90));
             _rootPath = GUILayout.TextField(_rootPath);
             GUILayout.EndHorizontal();
             GUILayout.Space(5);
