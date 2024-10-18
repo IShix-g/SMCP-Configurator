@@ -17,6 +17,9 @@ namespace Packages.SMCPConfigurator.Editor
     public class SMCPConfiguratorWindow : EditorWindow
     {
         string _rootPath = "Assets/_Projects/Scripts/";
+        const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
+
+        string _currentVersion;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -25,6 +28,11 @@ namespace Packages.SMCPConfigurator.Editor
             window.minSize = new Vector2(400, 400);
             window.titleContent = new GUIContent("SMCP Configurator");
             window.Show();
+        }
+
+        void OnEnable()
+        {
+            _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
         }
         
         void OnGUI()
@@ -40,13 +48,21 @@ namespace Packages.SMCPConfigurator.Editor
                 var style = new GUIStyle(GUI.skin.label)
                 {
                     fontSize = 13,
-                    padding = new RectOffset(0, 0, 0, 10),
+                    padding = new RectOffset(0, 0, 0, 5),
                     alignment = TextAnchor.MiddleCenter,
                     wordWrap = true
                 };
                 GUILayout.Label("SMCP Configurator", style);
             }
-
+            {
+                var style = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    padding = new RectOffset(0, 0, 0, 10)
+                };
+                EditorGUILayout.LabelField(_currentVersion, style);
+            }
+            
             EditorGUILayout.HelpBox("Create the necessary directories and assembly definition for SMCP.", MessageType.Info);
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
