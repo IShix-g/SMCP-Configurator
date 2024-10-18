@@ -17,11 +17,11 @@ namespace Packages.SMCPConfigurator.Editor
     
     public class SMCPConfiguratorWindow : EditorWindow
     {
-        string _rootPath = "Assets/_Projects/Scripts/";
         const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
 
+        string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
         bool _isStartCheckVersion;
         CancellationTokenSource _tokenSource;
