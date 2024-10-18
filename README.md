@@ -20,6 +20,7 @@ Follow the instructions in the dialog box.
 <img src="Docs/src2.png" width="500"/>
 
 ## What is SMCP?
+
 SMCP is an architecture for separating game logic and data models from MonoBehaviour.
 To learn more, please visit this [blog](https://qiita.com/IShix/items/5e1450ad8fb7f4a39f22) (Japanese only).
 ![](Docs/smpc.png)
@@ -49,3 +50,11 @@ It may also be a good place to place wrapper classes for external plug-ins that 
 
 #### Reference to another layer
 - All Logic/Model and View layers can be accessed.
+
+## SMCP sample game
+
+This project is a sample project using SMCP.
+
+[https://github.com/IShix-g/SMCPxPuzzleGame](https://github.com/IShix-g/SMCPxPuzzleGame)
+
+<img src="Docs/src3.png" width="320"/>
