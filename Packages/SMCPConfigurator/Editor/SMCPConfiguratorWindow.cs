@@ -46,7 +46,7 @@ namespace Packages.SMCPConfigurator.Editor
                 };
                 GUILayout.Label("SMCP Configurator", style);
             }
-            
+
             EditorGUILayout.HelpBox("Create the necessary directories and assembly definition for SMCP.", MessageType.Info);
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
@@ -63,7 +63,7 @@ namespace Packages.SMCPConfigurator.Editor
             GUILayout.Space(5);
             EditorGUILayout.HelpBox("In SMCP, I recommend using DI (Dependency Injection), especially VContainer for its speed and minimal code requirements.", MessageType.Info);
             GUILayout.Space(5);
-            
+
 #if ENABLE_VCONTAINER
             EditorGUI.BeginDisabledGroup(true);
             GUILayout.Button("VContainer is installed.", GUILayout.Height(35));
@@ -74,15 +74,21 @@ namespace Packages.SMCPConfigurator.Editor
                 Application.OpenURL("https://github.com/hadashiA/VContainer?tab=readme-ov-file#installation");
             }
 #endif
-            
+
             GUILayout.Space(5);
             EditorGUILayout.HelpBox("Enabling Source Generator improves performance, so it is recommended.", MessageType.Info);
             GUILayout.Space(5);
+#if !ENABLE_VCONTAINER
+            EditorGUI.BeginDisabledGroup(true);
+            GUILayout.Button("VContainer is not installed.", GUILayout.Height(35));
+            EditorGUI.EndDisabledGroup();
+#else
             if (GUILayout.Button("Enable VContainer's Source Generator", GUILayout.Height(35)))
             {
                 Application.OpenURL("https://vcontainer.hadashikick.jp/optimization/source-generator");
             }
-            
+#endif
+
             GUILayout.EndVertical();
         }
         
