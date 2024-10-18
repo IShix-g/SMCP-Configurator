@@ -5,7 +5,7 @@ This plugin is designed to perform initial setup for the Unity-exclusive archite
 ## Install via git URL
 Please add the URL to "Window > Package Manager > Add package from git URL...".
 
-URL: `https://github.com/IShix-g/CMSuniVortex.git?path=Packages/CMSuniVortex`
+URL: `https://github.com/IShix-g/CMSuniVortex.git?path=Packages/SMCPConfigurator`
 
 ![Package Manager](Docs/package_manager.png)
 
