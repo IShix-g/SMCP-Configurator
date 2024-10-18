@@ -19,8 +19,7 @@ namespace Packages.SMCPConfigurator.Editor
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var version = GetVersionByJson(json);
-                    return version;
+                    return GetVersionByJson(json);
                 }
                 Debug.LogError("GetVersion error: " + response.ReasonPhrase);
                 return string.Empty;

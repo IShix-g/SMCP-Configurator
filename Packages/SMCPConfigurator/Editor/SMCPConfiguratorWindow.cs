@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -8,19 +9,18 @@ using UnityEditor;
 
 namespace Packages.SMCPConfigurator.Editor
 {
-    [Serializable]
-    class AssemblyDefinition
-    {
-        public string name;
-        public string[] references;
-    }
-    
     public class SMCPConfiguratorWindow : EditorWindow
     {
         const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
-
+        static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
+        {
+            { "LogicAndModel", Array.Empty<string>() },
+            { "View", new[] { "LogicAndModel" } },
+            { "Others", new[] { "LogicAndModel", "View" } }
+        };
+        
         string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
         bool _isStartCheckVersion;
@@ -133,13 +133,13 @@ namespace Packages.SMCPConfigurator.Editor
         void StartCheckUpdate()
         {
             _isStartCheckVersion = true;
-
             _tokenSource = new CancellationTokenSource();
+            
             CheckVersion.GetVersionOnServerAsync(_packageUrl)
                 .SafeContinueWith(task =>
                 {
                     var version = task.Result;
-                        
+                    
                     if (!string.IsNullOrEmpty(version))
                     {
                         var comparisonResult = default(int);
@@ -169,21 +169,20 @@ namespace Packages.SMCPConfigurator.Editor
         
         static void GenerateAssemblyDefinitions(string rootDirectory)
         {
-            var path1 = CreateAssemblyDefinition(rootDirectory, "LogicAndModel");
-            var path2 = CreateAssemblyDefinition(rootDirectory, "View", new[] { "LogicAndModel" });
-            var path3 = CreateAssemblyDefinition(rootDirectory, "Others", new[] { "LogicAndModel", "View" });
+            var generatedPaths = s_assemblyDefinitions
+                .Select(kvp => CreateAssemblyDefinition(rootDirectory, kvp.Key, kvp.Value))
+                .ToList();
             AssetDatabase.Refresh();
-            Debug.Log("Assembly Definition files generated.\n-" + path1 + "\n-" + path2 + "\n-" + path3 + "\n");
+            Debug.Log($"Assembly Definition files generated.\n- {string.Join("\n- ", generatedPaths)}\n");
         }
         
-        static string CreateAssemblyDefinition(string rootDirectory, string assemblyName, string[] references = null)
+        static string CreateAssemblyDefinition(string rootDirectory, string assemblyName, string[] references)
         {
             var asmdef = new AssemblyDefinition
             {
                 name = assemblyName,
                 references = references
             };
-
             var path = Path.Combine(rootDirectory, assemblyName, assemblyName + ".asmdef");
             CreateDirectory(path);
             var json = JsonUtility.ToJson(asmdef, true);
@@ -240,6 +239,13 @@ namespace Packages.SMCPConfigurator.Editor
                 return false;
             }
             return true;
+        }
+        
+        [Serializable]
+        class AssemblyDefinition
+        {
+            public string name;
+            public string[] references;
         }
     }
 }

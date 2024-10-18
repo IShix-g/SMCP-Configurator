@@ -26,7 +26,7 @@ namespace Packages.SMCPConfigurator.Editor
                 }
                 else
                 {
-                    context.Post(_ => continuationAction(t), null);
+                    context.Post(_ => continuationAction(t), default);
                 }
             },
             cancellationToken,
@@ -53,7 +53,7 @@ namespace Packages.SMCPConfigurator.Editor
                 }
                 else
                 {
-                    context.Post(_ => continuationAction(t), null);
+                    context.Post(_ => continuationAction(t), default);
                 }
             },
             cancellationToken,
