@@ -1,6 +1,6 @@
 # SMCP Configurator
 
-This plugin is designed to perform initial setup for the Unity-exclusive architecture pattern.
+This plugin is for the initial configuration of the Unity-specific architecture pattern SMCP.
 
 ## Install via git URL
 Please add the URL to "Window > Package Manager > Add package from git URL...".
