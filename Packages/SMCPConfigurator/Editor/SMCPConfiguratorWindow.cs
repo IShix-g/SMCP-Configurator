@@ -23,7 +23,6 @@ namespace Packages.SMCPConfigurator.Editor
         
         string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
-        bool _isStartCheckVersion;
         CancellationTokenSource _tokenSource;
         
         [MenuItem("Window/SMCP Configurator")]
@@ -37,11 +36,7 @@ namespace Packages.SMCPConfigurator.Editor
 
         void OnEnable() => _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
 
-        void OnDestroy()
-        {
-            _tokenSource?.SafeCancelAndDispose();
-            _isStartCheckVersion = false;
-        }
+        void OnDestroy() => _tokenSource?.SafeCancelAndDispose();
         
         void OnGUI()
         {
@@ -58,12 +53,10 @@ namespace Packages.SMCPConfigurator.Editor
             {
                 Application.OpenURL(_gitUrl);
             }
-            EditorGUI.BeginDisabledGroup(_isStartCheckVersion);
             if (GUILayout.Button("Check for Update"))
             {
                 StartCheckUpdate();
             }
-            EditorGUI.EndDisabledGroup();
             GUILayout.EndHorizontal();
             
             {
@@ -88,7 +81,7 @@ namespace Packages.SMCPConfigurator.Editor
             EditorGUILayout.HelpBox("Create the necessary directories and assembly definition for SMCP.", MessageType.Info);
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Root Directory", GUILayout.MaxWidth(90));
+            GUILayout.Label("Script Directory", GUILayout.MaxWidth(90));
             _rootPath = GUILayout.TextField(_rootPath);
             GUILayout.EndHorizontal();
             GUILayout.Space(5);
@@ -132,7 +125,6 @@ namespace Packages.SMCPConfigurator.Editor
 
         void StartCheckUpdate()
         {
-            _isStartCheckVersion = true;
             _tokenSource = new CancellationTokenSource();
             
             CheckVersion.GetVersionOnServerAsync(_packageUrl)
@@ -150,18 +142,23 @@ namespace Packages.SMCPConfigurator.Editor
                             
                         if (comparisonResult >= 0)
                         {
-                            EditorUtility.DisplayDialog("Check for Update",
-                                "Local: " + _currentVersion + "  GitHub: " + version + "\nThe current version is the latest release.",
+                            EditorUtility.DisplayDialog("You have the latest version.",
+                                "Editor: " + _currentVersion + "  GitHub: " + version + "\nThe current version is the latest release.",
                                 "Close");
                         }
                         else
                         {
-                            EditorUtility.DisplayDialog(_currentVersion + " -> " + version,
+                            var isOpen = EditorUtility.DisplayDialog(_currentVersion + " -> " + version,
                                 "There is a newer version (" + version + "), please update from Package Manager.",
+                                "Open Package Manager",
                                 "Close");
+
+                            if (isOpen)
+                            {
+                                EditorApplication.ExecuteMenuItem("Window/Package Manager");
+                            }
                         }
                     }
-                    _isStartCheckVersion = false;
                     _tokenSource.Dispose();
                     _tokenSource = default;
                 }, _tokenSource.Token);
