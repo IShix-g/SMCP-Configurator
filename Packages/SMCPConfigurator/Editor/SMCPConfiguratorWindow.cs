@@ -16,6 +16,7 @@ namespace Packages.SMCPConfigurator.Editor
         const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
+        const string _gitVContainerUrl = "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer";
         readonly string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
         static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
         {
@@ -24,11 +25,12 @@ namespace Packages.SMCPConfigurator.Editor
             { "Others", new[] { "LogicAndModel", "View" } }
         };
         
-        string _rootPath = "Assets/_Projects/Scripts/";
+        [SerializeField] string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
         CancellationTokenSource _tokenSource;
         AddRequest _addRequest;
         bool _isProcessing;
+        Action _onCompleted;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -39,8 +41,14 @@ namespace Packages.SMCPConfigurator.Editor
             window.Show();
         }
 
-        void OnEnable() => _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
-
+        void OnEnable()
+        {
+            _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
+            Undo.undoRedoPerformed += Repaint;
+        }
+        
+        void OnDisable() => Undo.undoRedoPerformed -= Repaint;
+        
         void OnDestroy()
         {
             _tokenSource?.SafeCancelAndDispose();
@@ -91,18 +99,57 @@ namespace Packages.SMCPConfigurator.Editor
             }
             
             EditorGUILayout.HelpBox("Create the necessary directories and assembly definition for SMCP.", MessageType.Info);
+            
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Script Directory", GUILayout.MaxWidth(90));
             _rootPath = GUILayout.TextField(_rootPath);
+            var folderIcon = EditorGUIUtility.IconContent("Folder Icon");
+            var buttonClicked = GUILayout.Button(folderIcon, GUILayout.Width(35), GUILayout.Height(EditorGUIUtility.singleLineHeight));
             GUILayout.EndHorizontal();
+
+            if (buttonClicked)
+            {
+                var selectedPath = EditorUtility.OpenFolderPanel(
+                    "Select root path",
+                    string.IsNullOrEmpty(_rootPath)
+                        ? "Assets/"
+                        : _rootPath, "Select root path");
+                
+                if (!string.IsNullOrEmpty(selectedPath)
+                    && _rootPath != selectedPath)
+                {
+                    Undo.RecordObject(this, "Root Path Update");
+                    
+                    _rootPath = selectedPath;
+                    var assetsIndex = _rootPath.IndexOf("Assets", StringComparison.Ordinal);
+                    if (assetsIndex >= 0)
+                    {
+                        _rootPath = _rootPath.Substring(assetsIndex);
+                        if (!string.IsNullOrEmpty(_rootPath)
+                            && !_rootPath.EndsWith('/'))
+                        {
+                            _rootPath += "/";
+                        }
+                    }
+                    else
+                    {
+                        _rootPath = string.Empty;
+                        Debug.LogError("Please select the directory path under Assets.");
+                    }
+                    
+                    EditorUtility.SetDirty(this);
+                    Debug.Log("Changed OpenFolderPanel");
+                }
+            }
+            
             GUILayout.Space(5);
             if (GUILayout.Button("Create Directories", GUILayout.Height(35))
                 && ValidDirectory(_rootPath))
             {
                 GenerateAssemblyDefinitions(_rootPath);
             }
-
+            
             GUILayout.Space(5);
             EditorGUILayout.HelpBox("In SMCP, I recommend using DI (Dependency Injection), especially VContainer for its speed and minimal code requirements.", MessageType.Info);
             GUILayout.Space(5);
@@ -114,7 +161,7 @@ namespace Packages.SMCPConfigurator.Editor
 #else
             if (GUILayout.Button("Installing VContainer", GUILayout.Height(35)))
             {
-                Application.OpenURL("https://github.com/hadashiA/VContainer?tab=readme-ov-file#installation");
+                InstallPackage(_gitVContainerUrl);
             }
 #endif
 
@@ -169,16 +216,22 @@ namespace Packages.SMCPConfigurator.Editor
 
                             if (isOpen)
                             {
-                                _isProcessing = true;
-                                EditorUtility.DisplayProgressBar("Updating", "Please wait...", 0);
-                                _addRequest = Client.Add(_gitInstallUrl);
-                                EditorApplication.update += AddProgress;
+                                InstallPackage(_gitInstallUrl);
                             }
                         }
                     }
                     _tokenSource.Dispose();
                     _tokenSource = default;
                 }, _tokenSource.Token);
+        }
+
+        void InstallPackage(string url, Action onCompleted = default)
+        {
+            _onCompleted = onCompleted;
+            _isProcessing = true;
+            EditorUtility.DisplayProgressBar("Install", "Please wait...", 0.3f);
+            _addRequest = Client.Add(url);
+            EditorApplication.update += AddProgress;
         }
         
         void AddProgress()
@@ -200,6 +253,8 @@ namespace Packages.SMCPConfigurator.Editor
             _addRequest = default;
             EditorUtility.ClearProgressBar();
             _isProcessing = false;
+            _onCompleted?.Invoke();
+            _onCompleted = default;
         }
         
         static void GenerateAssemblyDefinitions(string rootDirectory)
