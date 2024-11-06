@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.PackageManager;
+using UnityEditor.PackageManager.Requests;
 
 namespace Packages.SMCPConfigurator.Editor
 {
@@ -14,6 +16,7 @@ namespace Packages.SMCPConfigurator.Editor
         const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
+        readonly string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
         static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
         {
             { "LogicAndModel", Array.Empty<string>() },
@@ -24,6 +27,8 @@ namespace Packages.SMCPConfigurator.Editor
         string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
         CancellationTokenSource _tokenSource;
+        AddRequest _addRequest;
+        bool _isProcessing;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -36,10 +41,17 @@ namespace Packages.SMCPConfigurator.Editor
 
         void OnEnable() => _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
 
-        void OnDestroy() => _tokenSource?.SafeCancelAndDispose();
+        void OnDestroy()
+        {
+            _tokenSource?.SafeCancelAndDispose();
+            EditorUtility.ClearProgressBar();
+            _isProcessing = false;
+        }
         
         void OnGUI()
         {
+            EditorGUI.BeginDisabledGroup(_isProcessing);
+            
             {
                 var style = new GUIStyle()
                 {
@@ -121,6 +133,8 @@ namespace Packages.SMCPConfigurator.Editor
 #endif
 
             GUILayout.EndVertical();
+            
+            EditorGUI.EndDisabledGroup();
         }
 
         void StartCheckUpdate()
@@ -139,7 +153,7 @@ namespace Packages.SMCPConfigurator.Editor
                         var server = new Version(version.Trim());
                         comparisonResult = current.CompareTo(server);
                         version = "v" + version;
-                            
+
                         if (comparisonResult >= 0)
                         {
                             EditorUtility.DisplayDialog("You have the latest version.",
@@ -150,18 +164,42 @@ namespace Packages.SMCPConfigurator.Editor
                         {
                             var isOpen = EditorUtility.DisplayDialog(_currentVersion + " -> " + version,
                                 "There is a newer version (" + version + "), please update from Package Manager.",
-                                "Open Package Manager",
+                                "Update",
                                 "Close");
 
                             if (isOpen)
                             {
-                                EditorApplication.ExecuteMenuItem("Window/Package Manager");
+                                _isProcessing = true;
+                                EditorUtility.DisplayProgressBar("Updating", "Please wait...", 0);
+                                _addRequest = Client.Add(_gitInstallUrl);
+                                EditorApplication.update += AddProgress;
                             }
                         }
                     }
                     _tokenSource.Dispose();
                     _tokenSource = default;
                 }, _tokenSource.Token);
+        }
+        
+        void AddProgress()
+        {
+            if (!_addRequest.IsCompleted)
+            {
+                return;
+            }
+            switch (_addRequest.Status)
+            {
+                case StatusCode.Success:
+                    Debug.Log("Installed: " + _addRequest.Result.packageId);
+                    break;
+                case >= StatusCode.Failure:
+                    Debug.Log(_addRequest.Error.message);
+                    break;
+            }
+            EditorApplication.update -= AddProgress;
+            _addRequest = default;
+            EditorUtility.ClearProgressBar();
+            _isProcessing = false;
         }
         
         static void GenerateAssemblyDefinitions(string rootDirectory)
