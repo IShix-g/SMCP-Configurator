@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.PackageManager;
-using UnityEditor.PackageManager.Requests;
 
-namespace Packages.SMCPConfigurator.Editor
+namespace SMCPConfigurator.Editor
 {
     public class SMCPConfiguratorWindow : EditorWindow
     {
@@ -17,7 +17,7 @@ namespace Packages.SMCPConfigurator.Editor
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
         const string _gitVContainerUrl = "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer";
-        readonly string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
+        const string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
         static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
         {
             { "LogicAndModel", Array.Empty<string>() },
@@ -28,9 +28,9 @@ namespace Packages.SMCPConfigurator.Editor
         [SerializeField] string _rootPath = "Assets/_Projects/Scripts/";
         string _currentVersion;
         CancellationTokenSource _tokenSource;
-        AddRequest _addRequest;
         bool _isProcessing;
-        Action _onCompleted;
+        GUIContent _folderIcon;
+        CancellationTokenSource _installTokenSource;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -40,10 +40,18 @@ namespace Packages.SMCPConfigurator.Editor
             window.titleContent = new GUIContent("SMCP Configurator");
             window.Show();
         }
-
+        
+        [MenuItem("Window/Cancel")]
+        static void Cancel()
+        {
+            var window = GetWindow<SMCPConfiguratorWindow>();
+            window._installTokenSource?.SafeCancelAndDispose();
+        }
+        
         void OnEnable()
         {
             _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
+            _folderIcon = EditorGUIUtility.IconContent("Folder Icon");
             Undo.undoRedoPerformed += Repaint;
         }
         
@@ -51,6 +59,7 @@ namespace Packages.SMCPConfigurator.Editor
         
         void OnDestroy()
         {
+            _installTokenSource?.SafeCancelAndDispose();
             _tokenSource?.SafeCancelAndDispose();
             EditorUtility.ClearProgressBar();
             _isProcessing = false;
@@ -104,8 +113,7 @@ namespace Packages.SMCPConfigurator.Editor
             GUILayout.BeginHorizontal();
             GUILayout.Label("Script Directory", GUILayout.MaxWidth(90));
             _rootPath = GUILayout.TextField(_rootPath);
-            var folderIcon = EditorGUIUtility.IconContent("Folder Icon");
-            var buttonClicked = GUILayout.Button(folderIcon, GUILayout.Width(35), GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            var buttonClicked = GUILayout.Button(_folderIcon, GUILayout.Width(35), GUILayout.Height(EditorGUIUtility.singleLineHeight));
             GUILayout.EndHorizontal();
 
             if (buttonClicked)
@@ -161,7 +169,15 @@ namespace Packages.SMCPConfigurator.Editor
 #else
             if (GUILayout.Button("Installing VContainer", GUILayout.Height(35)))
             {
-                InstallPackage(_gitVContainerUrl);
+                InstallPackage(_gitVContainerUrl)
+                    .SafeContinueWith(installTask =>
+                    {
+                        if (installTask.IsFaulted
+                            && installTask.Exception != null)
+                        {
+                            throw installTask.Exception;
+                        }
+                    });
             }
 #endif
 
@@ -216,7 +232,16 @@ namespace Packages.SMCPConfigurator.Editor
 
                             if (isOpen)
                             {
-                                InstallPackage(_gitInstallUrl);
+                                InstallPackage(_gitInstallUrl)
+                                    .SafeContinueWith(installTask =>
+                                    {
+                                        Debug.Log(installTask.IsCompleted);
+                                        if (installTask.IsFaulted
+                                            && installTask.Exception != null)
+                                        {
+                                            throw installTask.Exception;
+                                        }
+                                    });
                             }
                         }
                     }
@@ -224,37 +249,35 @@ namespace Packages.SMCPConfigurator.Editor
                     _tokenSource = default;
                 }, _tokenSource.Token);
         }
-
-        void InstallPackage(string url, Action onCompleted = default)
-        {
-            _onCompleted = onCompleted;
-            _isProcessing = true;
-            EditorUtility.DisplayProgressBar("Install", "Please wait...", 0.3f);
-            _addRequest = Client.Add(url);
-            EditorApplication.update += AddProgress;
-        }
         
-        void AddProgress()
+        async Task InstallPackage(string url)
         {
-            if (!_addRequest.IsCompleted)
+            try
             {
-                return;
+                _isProcessing = true;
+                EditorUtility.DisplayProgressBar("Install Package", "Please wait...", 0.3f);
+                _installTokenSource = new CancellationTokenSource();
+                var installAsync = new EditorAsync();
+                var addRequest = Client.Add(url);
+                await installAsync.StartAsync(() => addRequest.IsCompleted, _installTokenSource.Token);
+            
+                switch (addRequest.Status)
+                {
+                    case StatusCode.Success:
+                        Debug.Log("Installed: " + addRequest.Result.packageId + "\nYou can check it from Package Manager.");
+                        break;
+                    case StatusCode.Failure:
+                        Debug.LogError(addRequest.Error.message);
+                        break;
+                }
             }
-            switch (_addRequest.Status)
+            finally
             {
-                case StatusCode.Success:
-                    Debug.Log("Installed: " + _addRequest.Result.packageId);
-                    break;
-                case >= StatusCode.Failure:
-                    Debug.Log(_addRequest.Error.message);
-                    break;
+                _installTokenSource?.SafeCancelAndDispose();
+                _installTokenSource = default;
+                EditorUtility.ClearProgressBar();
+                _isProcessing = false;
             }
-            EditorApplication.update -= AddProgress;
-            _addRequest = default;
-            EditorUtility.ClearProgressBar();
-            _isProcessing = false;
-            _onCompleted?.Invoke();
-            _onCompleted = default;
         }
         
         static void GenerateAssemblyDefinitions(string rootDirectory)

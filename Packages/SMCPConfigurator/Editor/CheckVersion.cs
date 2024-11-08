@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace Packages.SMCPConfigurator.Editor
+namespace SMCPConfigurator.Editor
 {
     sealed class CheckVersion
     {

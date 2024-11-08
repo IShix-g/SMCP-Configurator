@@ -3,7 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Packages.SMCPConfigurator.Editor
+namespace SMCPConfigurator.Editor
 {
     public static class TaskExtensions
     {
