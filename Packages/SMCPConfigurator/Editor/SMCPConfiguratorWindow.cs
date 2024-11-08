@@ -41,13 +41,6 @@ namespace SMCPConfigurator.Editor
             window.Show();
         }
         
-        [MenuItem("Window/Cancel")]
-        static void Cancel()
-        {
-            var window = GetWindow<SMCPConfiguratorWindow>();
-            window._installTokenSource?.SafeCancelAndDispose();
-        }
-        
         void OnEnable()
         {
             _currentVersion = "v" + CheckVersion.GetCurrent(_packagePath);
@@ -147,7 +140,6 @@ namespace SMCPConfigurator.Editor
                     }
                     
                     EditorUtility.SetDirty(this);
-                    Debug.Log("Changed OpenFolderPanel");
                 }
             }
             
@@ -235,7 +227,6 @@ namespace SMCPConfigurator.Editor
                                 InstallPackage(_gitInstallUrl)
                                     .SafeContinueWith(installTask =>
                                     {
-                                        Debug.Log(installTask.IsCompleted);
                                         if (installTask.IsFaulted
                                             && installTask.Exception != null)
                                         {
