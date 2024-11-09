@@ -14,8 +14,10 @@ namespace SMCPConfigurator.Editor
     public class SMCPConfiguratorWindow : EditorWindow
     {
         const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
+        const string _packageName = "com.ishix.smcpconfigurator";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
+        const string _gitVContainerPackageName = "jp.hadashikick.vcontainer";
         const string _gitVContainerUrl = "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer";
         const string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
         static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
@@ -31,6 +33,7 @@ namespace SMCPConfigurator.Editor
         bool _isProcessing;
         GUIContent _folderIcon;
         CancellationTokenSource _installTokenSource;
+        readonly PackageInstaller _packageInstaller = new ();
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
@@ -52,7 +55,10 @@ namespace SMCPConfigurator.Editor
         
         void OnDestroy()
         {
-            _installTokenSource?.SafeCancelAndDispose();
+            if (_packageInstaller.IsProcessing)
+            {
+                _packageInstaller.Cancel();
+            }
             _tokenSource?.SafeCancelAndDispose();
             EditorUtility.ClearProgressBar();
             _isProcessing = false;
@@ -154,25 +160,17 @@ namespace SMCPConfigurator.Editor
             EditorGUILayout.HelpBox("In SMCP, I recommend using DI (Dependency Injection), especially VContainer for its speed and minimal code requirements.", MessageType.Info);
             GUILayout.Space(5);
 
+            
 #if ENABLE_VCONTAINER
-            EditorGUI.BeginDisabledGroup(true);
-            GUILayout.Button("VContainer is installed.", GUILayout.Height(35));
-            EditorGUI.EndDisabledGroup();
+            var vContainerButtonTitle = "Update VContainer";
 #else
-            if (GUILayout.Button("Installing VContainer", GUILayout.Height(35)))
-            {
-                InstallPackage(_gitVContainerUrl)
-                    .SafeContinueWith(installTask =>
-                    {
-                        if (installTask.IsFaulted
-                            && installTask.Exception != null)
-                        {
-                            throw installTask.Exception;
-                        }
-                    });
-            }
+            var vContainerButtonTitle = "Installing VContainer";
 #endif
-
+            if (GUILayout.Button(vContainerButtonTitle, GUILayout.Height(35)))
+            {
+                _packageInstaller.InstallAsync(_gitVContainerUrl, _gitVContainerPackageName).Handled();
+            }
+            
             GUILayout.Space(5);
             EditorGUILayout.HelpBox("Enabling Source Generator improves performance, so it is recommended.", MessageType.Info);
             GUILayout.Space(5);
@@ -197,7 +195,7 @@ namespace SMCPConfigurator.Editor
             _tokenSource = new CancellationTokenSource();
             
             CheckVersion.GetVersionOnServerAsync(_packageUrl)
-                .SafeContinueWith(task =>
+                .ContinueOnMainThread(task =>
                 {
                     var version = task.Result;
                     
@@ -224,51 +222,14 @@ namespace SMCPConfigurator.Editor
 
                             if (isOpen)
                             {
-                                InstallPackage(_gitInstallUrl)
-                                    .SafeContinueWith(installTask =>
-                                    {
-                                        if (installTask.IsFaulted
-                                            && installTask.Exception != null)
-                                        {
-                                            throw installTask.Exception;
-                                        }
-                                    });
+                                _packageInstaller.InstallAsync(_gitInstallUrl, _packageName).Handled();
                             }
                         }
                     }
                     _tokenSource.Dispose();
                     _tokenSource = default;
-                }, _tokenSource.Token);
-        }
-        
-        async Task InstallPackage(string url)
-        {
-            try
-            {
-                _isProcessing = true;
-                EditorUtility.DisplayProgressBar("Install Package", "Please wait...", 0.3f);
-                _installTokenSource = new CancellationTokenSource();
-                var installAsync = new EditorAsync();
-                var addRequest = Client.Add(url);
-                await installAsync.StartAsync(() => addRequest.IsCompleted, _installTokenSource.Token);
-            
-                switch (addRequest.Status)
-                {
-                    case StatusCode.Success:
-                        Debug.Log("Installed: " + addRequest.Result.packageId + "\nYou can check it from Package Manager.");
-                        break;
-                    case StatusCode.Failure:
-                        Debug.LogError(addRequest.Error.message);
-                        break;
-                }
-            }
-            finally
-            {
-                _installTokenSource?.SafeCancelAndDispose();
-                _installTokenSource = default;
-                EditorUtility.ClearProgressBar();
-                _isProcessing = false;
-            }
+                },
+                cancellationToken: _tokenSource.Token);
         }
         
         static void GenerateAssemblyDefinitions(string rootDirectory)

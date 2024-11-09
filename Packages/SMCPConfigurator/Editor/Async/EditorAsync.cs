@@ -4,88 +4,108 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEditor;
 
-public sealed class EditorAsync : IDisposable
+namespace SMCPConfigurator.Editor
 {
-    public bool IsStarted => _taskCompletionSource != null;
-    
-    bool _isDisposed;
-    Func<bool> _isFinishedCondition;
-    TaskCompletionSource<bool> _taskCompletionSource;
-    CancellationTokenSource _cancellationTokenSource;
-    
-    public async Task StartAsync(Func<bool> isFinishedCondition, CancellationToken cancellationToken = default)
+    public sealed class EditorAsync : IDisposable
     {
-        if (IsStarted)
+        public bool IsStarted => _completionSource != null;
+
+        bool _isDisposed;
+        Func<bool> _isOperationComplete;
+        TaskCompletionSource<bool> _completionSource;
+        CancellationTokenSource _tokenSource;
+
+        public async Task StartAsync(Func<bool> isOperationComplete, CancellationToken cancellationToken = default)
         {
-            throw new InvalidOperationException("Task is already started.");
+            if (IsStarted)
+            {
+                throw new InvalidOperationException("Task is already started.");
+            }
+
+            if (isOperationComplete())
+            {
+                return;
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+
+            _isOperationComplete = isOperationComplete;
+            _completionSource = new TaskCompletionSource<bool>();
+            _tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _tokenSource.Token.Register(() =>
+                Cancel(new OperationCanceledException("Operation was cancelled by token")));
+
+            EditorApplication.update += OnUpdate;
+
+            try
+            {
+                await _completionSource.Task;
+            }
+            finally
+            {
+                Cleanup();
+            }
         }
 
-        if (isFinishedCondition())
+        public void Reset()
         {
-            return;
+            if (IsStarted)
+            {
+                Cleanup();
+            }
         }
         
-        if (cancellationToken.IsCancellationRequested)
+        public void Cancel(Exception exception = default)
         {
-            throw new OperationCanceledException(cancellationToken);
-        }
-        
-        _isFinishedCondition = isFinishedCondition;
-        _taskCompletionSource = new TaskCompletionSource<bool>();
-        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _cancellationTokenSource.Token.Register(() => Cancel(new OperationCanceledException("Operation was cancelled by token")));
-        
-        EditorApplication.update += OnUpdate;
+            if (!IsStarted)
+            {
+                return;
+            }
 
-        try
-        {
-            await _taskCompletionSource.Task;
-        }
-        finally
-        {
+            _completionSource.TrySetException(
+                exception ?? new OperationCanceledException("Operation was cancelled"));
             Cleanup();
         }
-    }
 
-    public void Cancel(Exception exception = default)
-    {
-        if (!IsStarted)
+        void OnUpdate()
         {
-            return;
+            if (_isOperationComplete())
+            {
+                _completionSource.SetResult(true);
+            }
         }
 
-        _taskCompletionSource.TrySetException(exception ?? new OperationCanceledException("Operation was cancelled"));
-        Cleanup();
-    }
-
-    void OnUpdate()
-    {
-        if (_isFinishedCondition())
+        void Cleanup()
         {
-            _taskCompletionSource.SetResult(true);
-            Cleanup();
+            _completionSource = default;
+            if (_tokenSource != default)
+            {
+                _tokenSource?.Dispose();
+                _tokenSource = default;
+            }
+            EditorApplication.update -= OnUpdate;
         }
-    }
 
-    void Cleanup()
-    {
-        _taskCompletionSource = default;
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = default;
-        EditorApplication.update -= OnUpdate;
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed)
+        public void Dispose()
         {
-            return;
-        }
-        _isDisposed = true;
+            if (_isDisposed)
+            {
+                return;
+            }
+            _isDisposed = true;
 
-        if (IsStarted)
-        {
-            Cleanup();
+            if (IsStarted)
+            {
+                if (_tokenSource != default)
+                {
+                    _tokenSource?.Dispose();
+                    _tokenSource = default;
+                }
+                Cleanup();
+            }
         }
     }
 }

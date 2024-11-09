@@ -2,63 +2,224 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace SMCPConfigurator.Editor
 {
     public static class TaskExtensions
     {
-        public static void SafeContinueWith<T>(
+        public static void ContinueOnMainThread<T>(
             this Task<T> @this,
-            Action<Task<T>> continuationAction,
+            Action<Task<T>> onSuccess,
+            Action<Exception> onError = default,
+            Action onCancel = default,
             CancellationToken cancellationToken = default)
         {
             var context = SynchronizationContext.Current;
             @this.ContinueWith(t =>
-            {
-                if (cancellationToken.IsCancellationRequested)
                 {
-                    return;
-                }
-
-                if (SynchronizationContext.Current == context)
-                {
-                    continuationAction(t);
-                }
-                else
-                {
-                    context.Post(_ => continuationAction(t), default);
-                }
-            },
-            cancellationToken,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Current);
+                    try
+                    {
+                        if (cancellationToken.IsCancellationRequested || t.IsCanceled)
+                        {
+                            if (onCancel != default)
+                            {
+                                if (SynchronizationContext.Current == context)
+                                {
+                                    onCancel.Invoke();
+                                }
+                                else
+                                {
+                                    context.Post(_ => onCancel.Invoke(), default);
+                                }
+                            }
+                            return;
+                        }
+                        
+                        if (t.IsFaulted)
+                        {
+                            if (t.Exception != default && onError != default)
+                            {
+                                if (SynchronizationContext.Current == context)
+                                {
+                                    onError.Invoke(t.Exception);
+                                }
+                                else
+                                {
+                                    context.Post(_ => onError.Invoke(t.Exception), default);
+                                }
+                            }
+                            return;
+                        }
+                        
+                        if (t.IsCompleted)
+                        {
+                            if (SynchronizationContext.Current == context)
+                            {
+                                onSuccess(t);
+                            }
+                            else
+                            {
+                                context.Post(_ => onSuccess(t), default);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (onError != default)
+                        {
+                            if (SynchronizationContext.Current == context)
+                            {
+                                onError.Invoke(ex);
+                            }
+                            else
+                            {
+                                context.Post(_ => onError.Invoke(ex), default);
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError($"Unhandled exception in ContinueOnMainThread: {ex}");
+                        }
+                    }
+                },
+                cancellationToken,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Current);
         }
         
-        public static void SafeContinueWith(
+        public static void ContinueOnMainThread(
             this Task @this,
-            Action<Task> continuationAction,
+            Action<Task> onSuccess,
+            Action<Exception> onError = default,
+            Action onCancel = default,
             CancellationToken cancellationToken = default)
         {
             var context = SynchronizationContext.Current;
             @this.ContinueWith(t =>
-            {
-                if (cancellationToken.IsCancellationRequested)
                 {
-                    return;
-                }
+                    try
+                    {
+                        if (cancellationToken.IsCancellationRequested || t.IsCanceled)
+                        {
+                            if (onCancel != default)
+                            {
+                                if (SynchronizationContext.Current == context)
+                                {
+                                    onCancel.Invoke();
+                                }
+                                else
+                                {
+                                    context.Post(_ => onCancel.Invoke(), default);
+                                }
+                            }
+                            return;
+                        }
+                        
+                        if (t.IsFaulted)
+                        {
+                            if (t.Exception != default && onError != default)
+                            {
+                                if (SynchronizationContext.Current == context)
+                                {
+                                    onError.Invoke(t.Exception);
+                                }
+                                else
+                                {
+                                    context.Post(_ => onError.Invoke(t.Exception), default);
+                                }
+                            }
+                            return;
+                        }
+                        
+                        if (t.IsCompleted)
+                        {
+                            if (SynchronizationContext.Current == context)
+                            {
+                                onSuccess(t);
+                            }
+                            else
+                            {
+                                context.Post(_ => onSuccess(t), default);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (onError != default)
+                        {
+                            if (SynchronizationContext.Current == context)
+                            {
+                                onError.Invoke(ex);
+                            }
+                            else
+                            {
+                                context.Post(_ => onError.Invoke(ex), default);
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError($"Unhandled exception in ContinueOnMainThread: {ex}");
+                        }
+                    }
+                },
+                cancellationToken,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Current);
+        }
+        
+        public static void Handled(this Task task, Action onCompleted = default, Action<Exception> onError = default)
+            => HandleTaskAsync(task, onCompleted, onError, SynchronizationContext.Current);
 
-                if (SynchronizationContext.Current == context)
+        static async void HandleTaskAsync(Task task, Action onCompleted, Action<Exception> onError, SynchronizationContext context)
+        {
+            try
+            {
+                await task;
+            }
+            catch (OperationCanceledException ex)
+            {
+                Debug.LogWarning("Task was canceled. Exception: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (onError != default)
                 {
-                    continuationAction(t);
+                    if (SynchronizationContext.Current == context)
+                    {
+                        onError(ex);
+                    }
+                    else
+                    {
+                        context?.Post(_ => onError(ex), default);
+                    }
                 }
                 else
                 {
-                    context.Post(_ => continuationAction(t), default);
+                    if (SynchronizationContext.Current == context)
+                    {
+                        Debug.LogError(ex);
+                    }
+                    else
+                    {
+                        context?.Post(_ => Debug.LogError(ex), default);
+                    }
                 }
-            },
-            cancellationToken,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Current);
+            }
+            finally
+            {
+                if (onCompleted != default)
+                {
+                    if (SynchronizationContext.Current == context)
+                    {
+                        onCompleted();
+                    }
+                    else
+                    {
+                        context?.Post(_ => onCompleted(), default);
+                    }
+                }
+            }
         }
         
         public static void SafeCancelAndDispose(this CancellationTokenSource @this)
