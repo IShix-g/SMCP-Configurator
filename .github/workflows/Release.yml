@@ -1,11 +1,9 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows:
-      - "Update package.json"
-    types:
-      - completed
+  push:
+    branches:
+      - main
 
 jobs:
   release:
