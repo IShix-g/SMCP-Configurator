@@ -3,7 +3,7 @@ name: Update package.json
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   TARGET_FILE: ./Packages/SMCPConfigurator/package.json
