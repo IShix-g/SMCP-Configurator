@@ -1,6 +1,7 @@
 name: Update package.json
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
