@@ -1,6 +1,7 @@
 name: Update package.json
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev
@@ -15,7 +16,7 @@ jobs:
       # Checkout
       - uses: actions/checkout@v4
       - name: Output package.json (Before)
-        run: cat ${{ env.TARGET_FILE }}
+        run: cat ${{ env.TARGET_FILE}}
       # Cache
       - name: Cache
         uses: actions/cache@v4
@@ -38,7 +39,7 @@ jobs:
       - name: Check update
         id: check_update
         run: |
-          cat ${{ env.TARGET_FILE }}
+          cat ${{ env.TARGET_FILE}}
           git diff --exit-code || echo "::set-output name=changed::1"
       # Commit
       - name: Commit files
@@ -47,14 +48,17 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "Update package.json to ${{ steps.tag_version.outputs.new_version }}" -a
+          git checkout -b update-packagejson-${{ steps.tag_version.outputs.new_version }}
+          git add ${{ env.TARGET_FILE }}
+          git commit -m "Update package.json to ${{ steps.tag_version.outputs.new_version }}"
+          git push origin update-packagejson-${{ steps.tag_version.outputs.new_version }}
       # Create Pull Request
       - name: Create Pull Request
         if: steps.check_update.outputs.changed == '1'
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: dev
+          branch: update-packagejson-${{ steps.tag_version.outputs.new_version }}
           title: "Update package.json to ${{ steps.tag_version.outputs.new_version }}"
           body: "Automated update of package.json to version ${{ steps.tag_version.outputs.new_version }}."
           base: main
