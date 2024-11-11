@@ -26,12 +26,13 @@ namespace SMCPConfigurator.Editor
         };
         
         [SerializeField] string _rootPath = "Assets/_Projects/Scripts/";
-        string _currentVersion;
-        CancellationTokenSource _tokenSource;
+        
         bool _isProcessing;
+        string _currentVersion;
         GUIContent _folderIcon;
-        CancellationTokenSource _installTokenSource;
         readonly PackageInstaller _packageInstaller = new ();
+        CancellationTokenSource _tokenSource;
+        CancellationTokenSource _installTokenSource;
         
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
