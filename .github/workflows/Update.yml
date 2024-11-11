@@ -1,10 +1,9 @@
 name: Update package.json
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - main
+      - dev
 
 env:
   TARGET_FILE: ./Packages/SMCPConfigurator/package.json
@@ -16,7 +15,7 @@ jobs:
       # Checkout
       - uses: actions/checkout@v4
       - name: Output package.json (Before)
-        run: cat ${{ env.TARGET_FILE}}
+        run: cat ${{ env.TARGET_FILE }}
       # Cache
       - name: Cache
         uses: actions/cache@v4
@@ -39,7 +38,7 @@ jobs:
       - name: Check update
         id: check_update
         run: |
-          cat ${{ env.TARGET_FILE}}
+          cat ${{ env.TARGET_FILE }}
           git diff --exit-code || echo "::set-output name=changed::1"
       # Commit
       - name: Commit files
