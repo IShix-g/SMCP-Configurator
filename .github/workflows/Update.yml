@@ -47,17 +47,14 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git checkout -b update-packagejson-${{ steps.tag_version.outputs.new_version }}
-          git add ${{ env.TARGET_FILE }}
-          git commit -m "Update package.json to ${{ steps.tag_version.outputs.new_version }}"
-          git push origin update-packagejson-${{ steps.tag_version.outputs.new_version }}
+          git commit -m "Update package.json to ${{ steps.tag_version.outputs.new_version }}" -a
       # Create Pull Request
       - name: Create Pull Request
         if: steps.check_update.outputs.changed == '1'
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: update-packagejson-${{ steps.tag_version.outputs.new_version }}
+          branch: dev
           title: "Update package.json to ${{ steps.tag_version.outputs.new_version }}"
           body: "Automated update of package.json to version ${{ steps.tag_version.outputs.new_version }}."
           base: main
