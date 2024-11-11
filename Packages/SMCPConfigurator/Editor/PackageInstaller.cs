@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEditor;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEditor;
+using UnityEditor.PackageManager;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
 namespace SMCPConfigurator.Editor
@@ -155,10 +155,12 @@ namespace SMCPConfigurator.Editor
 
         public void Cancel()
         {
-            if (_tokenSource == default)
+            if (!IsProcessing
+                || _tokenSource == default)
             {
                 return;
             }
+            
             if (!_tokenSource.IsCancellationRequested)
             {
                 _tokenSource.Cancel();
@@ -175,6 +177,11 @@ namespace SMCPConfigurator.Editor
             }
             _isDisposed = true;
 
+            if (IsProcessing)
+            {
+                Cancel();
+            }
+            
             if (_tokenSource != default)
             {
                 _tokenSource.Dispose();
