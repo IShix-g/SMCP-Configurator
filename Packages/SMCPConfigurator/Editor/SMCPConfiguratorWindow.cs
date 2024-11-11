@@ -11,10 +11,10 @@ namespace SMCPConfigurator.Editor
 {
     public class SMCPConfiguratorWindow : EditorWindow
     {
-        const string _packageUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
+        const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
+        const string _packageJsonUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
         const string _packageName = "com.ishix.smcpconfigurator";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
-        const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
         const string _gitVContainerPackageName = "jp.hadashikick.vcontainer";
         const string _gitVContainerUrl = "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer";
         const string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
@@ -192,7 +192,7 @@ namespace SMCPConfigurator.Editor
         {
             _tokenSource = new CancellationTokenSource();
             
-            CheckVersion.GetVersionOnServerAsync(_packageUrl)
+            CheckVersion.GetVersionOnServerAsync(_packageJsonUrl)
                 .ContinueOnMainThread(task =>
                 {
                     var version = task.Result;

@@ -8,7 +8,7 @@ namespace SMCPConfigurator.Editor
 {
     public sealed class EditorAsync : IDisposable
     {
-        public bool IsStarted => _completionSource != null;
+        public bool IsStarted => _completionSource != default;
 
         bool _isDisposed;
         Func<bool> _isOperationComplete;
@@ -70,14 +70,6 @@ namespace SMCPConfigurator.Editor
             Cleanup();
         }
 
-        void OnUpdate()
-        {
-            if (_isOperationComplete())
-            {
-                _completionSource.SetResult(true);
-            }
-        }
-
         void Cleanup()
         {
             _completionSource = default;
@@ -87,6 +79,14 @@ namespace SMCPConfigurator.Editor
                 _tokenSource = default;
             }
             EditorApplication.update -= OnUpdate;
+        }
+        
+        void OnUpdate()
+        {
+            if (_isOperationComplete())
+            {
+                _completionSource.SetResult(true);
+            }
         }
 
         public void Dispose()
