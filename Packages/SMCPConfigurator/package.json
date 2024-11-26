@@ -1,6 +1,6 @@
 {
   "name": "com.ishix.smcpconfigurator",
-  "version": "0.0.1-dev.0",
+  "version": "1.0.9",
   "displayName": "SMCP Configurator",
   "description": "This is a tool for setting up the SMCP architecture.",
   "unity": "2021.3",
