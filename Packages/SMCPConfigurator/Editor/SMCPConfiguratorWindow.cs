@@ -13,9 +13,7 @@ namespace SMCPConfigurator.Editor
     {
         const string _gitUrl = "https://github.com/IShix-g/SMCP-Configurator";
         const string _packageJsonUrl = "https://raw.githubusercontent.com/IShix-g/SMCP-Configurator/main/Packages/SMCPConfigurator/package.json";
-        const string _packageName = "com.ishix.smcpconfigurator";
         const string _packagePath = "Packages/com.ishix.smcpconfigurator/";
-        const string _gitVContainerPackageName = "jp.hadashikick.vcontainer";
         const string _gitVContainerUrl = "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer";
         const string _gitInstallUrl = _gitUrl + ".git?path=Packages/SMCPConfigurator";
         static readonly Dictionary<string, string[]> s_assemblyDefinitions = new Dictionary<string, string[]>
@@ -165,7 +163,7 @@ namespace SMCPConfigurator.Editor
 #endif
             if (GUILayout.Button(vContainerButtonTitle, GUILayout.Height(35)))
             {
-                _packageInstaller.InstallAsync(_gitVContainerUrl, _gitVContainerPackageName).Handled();
+                _packageInstaller.Install(_gitVContainerUrl).Handled();
             }
             
             GUILayout.Space(5);
@@ -219,7 +217,7 @@ namespace SMCPConfigurator.Editor
 
                             if (isOpen)
                             {
-                                _packageInstaller.InstallAsync(_gitInstallUrl, _packageName).Handled();
+                                _packageInstaller.Install(_gitInstallUrl).Handled();
                             }
                         }
                     }

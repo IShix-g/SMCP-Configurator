@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.Pool;
 using UnityEditor;
 using UnityEditor.PackageManager;
+using UnityEngine;
+using UnityEngine.Pool;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
 namespace SMCPConfigurator.Editor
@@ -59,12 +59,12 @@ namespace SMCPConfigurator.Editor
             }
         }
         
-        public async Task<PackageInfo> GetInfoByName(string packageName, CancellationToken token = default)
+        public async Task<PackageInfo> GetInfoByPackageId(string packageId, CancellationToken token = default)
         {
             var infos = await GetInfos(token);
             foreach (var info in infos)
             {
-                if (info.name.Contains(packageName, StringComparison.OrdinalIgnoreCase))
+                if (info.packageId.Contains(packageId, StringComparison.OrdinalIgnoreCase))
                 {
                     return info;
                 }
@@ -72,7 +72,7 @@ namespace SMCPConfigurator.Editor
             return default;
         }
         
-        public async Task InstallAsync(string packageUrl, string packageName = default, CancellationToken token = default, bool showProgressBar = true)
+        public async Task Install(string packageId, CancellationToken token = default, bool showProgressBar = true)
         {
             var op = _pool.Get();
             try
@@ -82,32 +82,15 @@ namespace SMCPConfigurator.Editor
                     EditorUtility.DisplayProgressBar("Package operations", "Please wait...", 0.2f);
                 }
                 
-                var isUpdate = false;
-                var packageID = string.Empty;
-                var version = string.Empty;
-                if(!string.IsNullOrEmpty(packageName))
-                {
-                    var info = await GetInfoByName(packageName, token);
-                    if (info != default)
-                    {
-                        packageID = info.packageId;
-                        version = info.version;
-                        isUpdate = true;
-                    }
-                }
+                var info = await GetInfoByPackageId(packageId, token);
 
                 if (showProgressBar)
                 {
-                    EditorUtility.DisplayProgressBar("Package operations", isUpdate ? "Update package..." : "Install Package...", 0.5f);
-                }
-                
-                if (isUpdate)
-                {
-                    packageID = packageID.Split('@')[0];
+                    EditorUtility.DisplayProgressBar("Package operations", info != default ? "Update package..." : "Install Package...", 0.5f);
                 }
                 
                 IsProcessing = true;
-                var request = Client.Add(isUpdate ? packageID : packageUrl);
+                var request = Client.Add(info != default ? info.name : packageId);
                 _tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
                 await op.StartAsync(() => request.IsCompleted, _tokenSource.Token);
 
@@ -115,15 +98,15 @@ namespace SMCPConfigurator.Editor
                 {
                     case StatusCode.Success:
                         var msg = default(string);
-                        if (isUpdate)
+                        if (info != default)
                         {
-                            if (request.Result.version == version)
+                            if (request.Result.version == info.version)
                             {
                                 msg = "You have the latest version. ID: " + request.Result.packageId;
                             }
                             else
                             {
-                                msg = "Updated ID: " + request.Result.packageId + ", New version: " + request.Result.version + ", Prev version: " + version;
+                                msg = "Updated ID: " + request.Result.packageId + ", New version: " + request.Result.version + ", Prev version: " + info.version;
                             }
                         }
                         else
@@ -153,6 +136,54 @@ namespace SMCPConfigurator.Editor
             }
         }
 
+        public async Task UnInstall(string packageId, CancellationToken token = default, bool showProgressBar = true)
+        {
+            var op = _pool.Get();
+            try
+            {
+                if (showProgressBar)
+                {
+                    EditorUtility.DisplayProgressBar("Package operations", "Please wait...", 0.2f);
+                }
+                
+                var info = await GetInfoByPackageId(packageId, token);
+                if (info == default)
+                {
+                    Debug.LogWarning("Removed. ID: " + packageId);
+                    return;
+                }
+                
+                IsProcessing = true;
+                var request = Client.Remove(info.name);
+                _tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+                await op.StartAsync(() => request.IsCompleted, _tokenSource.Token);
+
+                switch (request.Status)
+                {
+                    case StatusCode.Success:
+                        Debug.Log("Removed. ID: " + info.packageId);
+                        break;
+                    case StatusCode.Failure:
+                        Debug.LogError(request.Error.message);
+                        break;
+                }
+            }
+            finally
+            {
+                _pool.Release(op);
+                if (_tokenSource != default)
+                {
+                    _tokenSource.Dispose();
+                    _tokenSource = default;
+                }
+                if (showProgressBar)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+                IsProcessing = false;
+            }
+        }
+        
         public void Cancel()
         {
             if (!IsProcessing
@@ -168,7 +199,7 @@ namespace SMCPConfigurator.Editor
             _tokenSource.Dispose();
             _tokenSource = default;
         }
-
+        
         public void Dispose()
         {
             if (_isDisposed)
