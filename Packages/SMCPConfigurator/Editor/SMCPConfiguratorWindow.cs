@@ -181,7 +181,6 @@ namespace SMCPConfigurator.Editor
 #endif
 
             GUILayout.EndVertical();
-            
             EditorGUI.EndDisabledGroup();
         }
 
@@ -244,31 +243,41 @@ namespace SMCPConfigurator.Editor
                 references = references
             };
             var path = Path.Combine(rootDirectory, assemblyName, assemblyName + ".asmdef");
-            CreateDirectory(path);
+            CreateDirectories(path);
             var json = JsonUtility.ToJson(asmdef, true);
             File.WriteAllText(path, json);
             return path;
         }
         
-        static void CreateDirectory(string path)
+        static void CreateDirectories(string path)
         {
-            if (!string.IsNullOrEmpty(Path.GetExtension(path)))
+            if (!path.StartsWith("Assets"))
             {
-                path = Path.GetDirectoryName(path);
+                Debug.LogError("The path must start with 'Assets/' ");
+                return;
             }
-            if (string.IsNullOrEmpty(path))
+
+            path = Path.HasExtension(path) ? Path.GetDirectoryName(path) : path;
+            path = path.Replace("\\", "/");
+
+            if (string.IsNullOrEmpty(path)
+                || AssetDatabase.IsValidFolder(path))
             {
                 return;
             }
-            var dirs = path.Split('/');
-            var combinePath = dirs[0];
-            foreach (var dir in dirs.Skip(1))
+    
+            var folders = path.Split('/');
+            var parentFolder = folders[0];
+    
+            for (var i = 1; i < folders.Length; i++)
             {
-                if (!AssetDatabase.IsValidFolder(combinePath + '/' + dir))
+                var newFolder = parentFolder + "/" + folders[i];
+                Debug.Log(newFolder + " : " + AssetDatabase.IsValidFolder(newFolder));
+                if (!AssetDatabase.IsValidFolder(newFolder))
                 {
-                    AssetDatabase.CreateFolder(combinePath, dir);
+                    AssetDatabase.CreateFolder(parentFolder, folders[i]);
                 }
-                combinePath += '/' + dir;
+                parentFolder = newFolder;
             }
         }
 
