@@ -5,6 +5,10 @@
 
 This plugin is for the initial configuration of the Unity-specific architecture pattern SMCP.
 
+## What is SMCP?
+
+For more information, please click [here](#What-is-SMCP).
+
 ## Install via git URL
 Please add the URL to "Window > Package Manager > Add package from git URL...".
 
