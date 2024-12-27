@@ -1,3 +1,6 @@
+
+[README - 日本語版](README_jp.md)
+
 # SMCP Configurator
 
 This plugin is for the initial configuration of the Unity-specific architecture pattern SMCP.
