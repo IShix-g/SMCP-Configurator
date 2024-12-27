@@ -7,7 +7,7 @@ This plugin is for the initial configuration of the Unity-specific architecture 
 
 ## What is SMCP?
 
-For more information, please click [here](#What-is-SMCP).
+For more information, please click [here](#SMCP-architecture).
 
 ## Install via git URL
 Please add the URL to "Window > Package Manager > Add package from git URL...".
@@ -26,7 +26,7 @@ Follow the instructions in the dialog box.
 
 <img src="Docs/src2.png" width="500"/>
 
-## What is SMCP?
+## SMCP architecture
 
 SMCP is an architecture for separating game logic and data models from MonoBehaviour.
 To learn more, please visit this [blog](https://qiita.com/IShix/items/5e1450ad8fb7f4a39f22) (Japanese only).
