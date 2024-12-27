@@ -29,7 +29,6 @@ Follow the instructions in the dialog box.
 ## SMCP architecture
 
 SMCP is an architecture for separating game logic and data models from MonoBehaviour.
-To learn more, please visit this [blog](https://qiita.com/IShix/items/5e1450ad8fb7f4a39f22) (Japanese only).
 ![](Docs/smpc.png)
 
 ![](Docs/smpc2.png)
