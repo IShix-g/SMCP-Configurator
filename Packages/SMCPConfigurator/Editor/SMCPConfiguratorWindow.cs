@@ -23,13 +23,6 @@ namespace SMCPConfigurator.Editor
             { "Others", new[] { "LogicAndModel", "View" } }
         };
         
-        [SerializeField] string _rootPath = "Assets/_Projects/Scripts/";
-        bool _isProcessing;
-        string _currentVersion;
-        GUIContent _folderIcon;
-        readonly PackageInstaller _packageInstaller = new ();
-        CancellationTokenSource _tokenSource;
-        
         [MenuItem("Window/SMCP Configurator")]
         static void ShowWindow()
         {
@@ -37,6 +30,20 @@ namespace SMCPConfigurator.Editor
             window.minSize = new Vector2(400, 400);
             window.titleContent = new GUIContent("SMCP Configurator");
             window.Show();
+        }
+        
+        [SerializeField] string _rootPath = "Assets/_Projects/Scripts/";
+        bool _isProcessing;
+        string _currentVersion;
+        GUIContent _folderIcon;
+        readonly PackageInstaller _packageInstaller = new ();
+        CancellationTokenSource _tokenSource;
+        
+        [Serializable]
+        class AssemblyDefinition
+        {
+            public string name;
+            public string[] references;
         }
         
         void OnEnable()
@@ -308,13 +315,6 @@ namespace SMCPConfigurator.Editor
                 return false;
             }
             return true;
-        }
-        
-        [Serializable]
-        class AssemblyDefinition
-        {
-            public string name;
-            public string[] references;
         }
     }
 }
