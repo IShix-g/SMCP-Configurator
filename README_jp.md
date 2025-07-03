@@ -15,7 +15,9 @@
 
 "Unity Editor : Window > Package Manager > Add package from git URL...".
 
-URL: `https://github.com/IShix-g/SMCP-Configurator.git?path=Packages/SMCPConfigurator`
+```
+https://github.com/IShix-g/SMCP-Configurator.git?path=Packages/SMCPConfigurator
+```
 
 ![Package Manager](Docs/package_manager.png)
 

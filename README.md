@@ -12,7 +12,9 @@ For more information, please click [here](#SMCP-architecture).
 ## Install via git URL
 Please add the URL to "Window > Package Manager > Add package from git URL...".
 
-URL: `https://github.com/IShix-g/SMCP-Configurator.git?path=Packages/SMCPConfigurator`
+```
+https://github.com/IShix-g/SMCP-Configurator.git?path=Packages/SMCPConfigurator
+```
 
 ![Package Manager](Docs/package_manager.png)
 
